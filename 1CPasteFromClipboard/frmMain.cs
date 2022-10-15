@@ -23,6 +23,12 @@ namespace Pasta
 		{
 			InitializeComponent();
 
+			InitUI();			
+		}
+
+		private void InitUI()
+		{
+
 			ResetWindowText();
 
 			this.btnReadClipboard.Click += (_, _) => ReadClipboard();
@@ -33,6 +39,7 @@ namespace Pasta
 
 			ReadClipboard();
 		}
+ 
 
 		private void ResetWindowText() => Text = Application.ProductName;
 
@@ -64,7 +71,7 @@ namespace Pasta
 
 
 				int maxColumns = clipboardRows.Select(r => r.Length).Max();
-				lvwData.Columns.Add("#");
+				lvwData.Columns.Add("Строка");
 				for (int column = 1; column <= maxColumns; column++)
 					lvwData.Columns.Add($"Колонка {column}");
 
@@ -92,7 +99,7 @@ namespace Pasta
 			}
 			finally
 			{
-				tlbMain.Invalidate();
+				btnPasteTo1CTable.Enabled = lvwData.Items.Count > 0;
 			}
 		}
 
@@ -115,7 +122,7 @@ namespace Pasta
 				).ToArray();
 
 				if (!proc1Cs.Any()) throw new Exception("Не найден работающий процесс 1С!");
-				if (proc1Cs.Length > 1) throw new Exception("НАйдено более одного активного процесса 1С!");
+				if (proc1Cs.Length > 1) throw new Exception("Найдено более одного активного процесса 1С!");
 
 				Process proc1C = proc1Cs.First();
 				IntPtr hwnd1C = proc1C.MainWindowHandle;
@@ -204,8 +211,6 @@ namespace Pasta
 			}
 			finally
 			{
-				tlbMain.Invalidate();
-
 				lvwData.MultiSelect = true;
 				ResetWindowText();
 

@@ -62,7 +62,7 @@ namespace uom
 		internal static WinAPI.Security.TOKEN_ELEVATION_TYPE GetProcessElevation()
 		{
 			uom.OS.CheckVistaOrLater();
-			using var hToken = WinAPI.Security.OpenProcessToken(TokenAccessLevels.Query);
+			using var hToken = WinAPI.Security.OpenCurrentProcessToken(TokenAccessLevels.Query);
 			return WinAPI.Security.GetTokenInformation_Elevation(hToken);
 		}
 
@@ -238,14 +238,27 @@ namespace uom
 			return aNS.e_Join(".", NS)!;
 		}
 
-		public static Process[] GetThisProcessInstances()
-			=> Process.GetProcessesByName(Process.GetCurrentProcess().ProcessName);
+		internal static IntPtr GetCurrentModuleHandle()
+		{
+			using Process cp = Process.GetCurrentProcess();
+			using ProcessModule cm = cp.MainModule;
+			return uom.WinAPI.SafeHandles.Win32LibHandle.GetModuleHandle(cm.ModuleName);
+		}
+
+
+		public static Process[] GetAllInstancesOfThisProcess()
+		{
+			using Process cp = Process.GetCurrentProcess();
+			return Process.GetProcessesByName(cp.ProcessName);
+		}
+
 
 		/// <summary>Есть ли другие экземпляры этого процесса?</summary>
-		public static bool HasOtherInstances()
+		public static bool HasOtherInstancesOfThisProcess()
 		{
-			var iCurProcessID = System.Diagnostics.Process.GetCurrentProcess().Id;//.  .pr Environment.ProcessId;
-			return GetThisProcessInstances().Where(p => (p.Id != iCurProcessID)).Any();
+			using Process cp = Process.GetCurrentProcess();
+			int iCurProcessID = cp.Id;
+			return GetAllInstancesOfThisProcess().Where(p => (p.Id != iCurProcessID)).Any();
 		}
 
 		#region StartProcess...
@@ -619,7 +632,7 @@ namespace uom
 		{
 			OS.CheckVistaOrLater();
 			// Open the access token of the current process with TOKEN_QUERY.
-			using var hToken = WinAPI.Security.OpenProcessToken(TokenAccessLevels.Query);
+			using var hToken = WinAPI.Security.OpenCurrentProcessToken(TokenAccessLevels.Query);
 			// Allocate a buffer for the elevation information.
 			int cbTokenElevation = Marshal.SizeOf(typeof(WinAPI.Security.TOKEN_ELEVATION));
 			using var pTokenElevation = new WinAPI.Memory.LocalMemory(cbTokenElevation);
@@ -645,7 +658,7 @@ namespace uom
 			OS.CheckVistaOrLater();
 
 			WinAPI.Security.IntegrityLevels IL;//= WinAPI.Security.IntegrityLevels.ERROR;
-			using var hToken = WinAPI.Security.OpenProcessToken(TokenAccessLevels.Query); // Open the access token of the current process with TOKEN_QUERY.
+			using var hToken = WinAPI.Security.OpenCurrentProcessToken(TokenAccessLevels.Query); // Open the access token of the current process with TOKEN_QUERY.
 
 			// Then we must query the size of the integrity level information 
 			// associated with the token. Note that we expect GetTokenInformation to 
@@ -1284,7 +1297,7 @@ namespace uom
 			{
 
 				// Open the access token of the current process for query and duplicate.
-				using var hToken = WinAPI.Security.OpenProcessToken(TokenAccessLevels.Query | TokenAccessLevels.Duplicate);
+				using var hToken = WinAPI.Security.OpenCurrentProcessToken(TokenAccessLevels.Query | TokenAccessLevels.Duplicate);
 				SafeFileHandle? hTokenToCheck = null;
 				try
 				{
@@ -3619,7 +3632,7 @@ namespace uom
 
 			public static void e_Export(this RegistryKey keyOld, string path)
 			{
-				uom.WinAPI.Security.EnableProcessPrivilege(WinAPI.Security.PRIVELEGE_NAMES.SeBackupPrivilege);
+				WinAPI.Security.PRIVELEGE_NAMES.SeBackupPrivilege.e_AdjustProcessPrivilegeAndCloseToken();
 				var result = RegSaveKeyEx(
 					keyOld.Handle.DangerousGetHandle(),
 					path,
@@ -7422,11 +7435,9 @@ namespace uom
 			}
 
 
-
-
-
-
-
+			[MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static void e_AdjustProcessPrivilegeAndCloseToken(this WinAPI.Security.PRIVELEGE_NAMES p)
+				=> uom.WinAPI.Security.AdjustProcessPrivilegeAndCloseToken(p);
 
 		}
 
@@ -31710,7 +31721,7 @@ namespace uom
 
 
 		//[SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
-		internal static partial class Process
+		internal static partial class ProcessAPI
 		{
 
 			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
@@ -34873,7 +34884,7 @@ namespace uom
 					private static REPARSE_GUID_DATA_BUFFER GetReparseData(string path)
 					{
 						Debug.Assert(path.e_IsNOTNullOrWhiteSpace() && path.Length > 2 && Convert.ToString(path[1]) == ":" && Convert.ToString(path[2]) == @"\");
-						Security.EnableProcessPrivilege(Security.PRIVELEGE_NAMES.SeBackupPrivilege);
+						Security.PRIVELEGE_NAMES.SeBackupPrivilege.e_AdjustProcessPrivilegeAndCloseToken();
 
 						// Open the file and get its handle
 						using var hFile = CreateFileAsSafeFileHandle(path,
@@ -35264,9 +35275,9 @@ namespace uom
 
 			/// <summary>Open Token for Current Process</summary>
 			[SecurityCritical]
-			public static Microsoft.Win32.SafeHandles.SafeFileHandle OpenProcessToken(TokenAccessLevels DesiredAccess)
+			public static Microsoft.Win32.SafeHandles.SafeFileHandle OpenCurrentProcessToken(TokenAccessLevels DesiredAccess)
 			{
-				var hProcess = uom.WinAPI.Process.GetCurrentProcess();
+				var hProcess = uom.WinAPI.ProcessAPI.GetCurrentProcess();
 				return OpenProcessToken(hProcess, DesiredAccess);
 			}
 
@@ -35336,28 +35347,39 @@ namespace uom
 				IntPtr PreviousState,
 				IntPtr ReturnLength);
 
-			[SecurityCritical]
-			public static void EnableProcessPrivilege(PRIVELEGE_NAMES pn)
-				=> EnableProcessPrivilege(pn.ToString());
 
-
+			/// <returns>processToken</returns>
 			[SecurityCritical]
-			public static void EnableProcessPrivilege(string pn)
+			public static SafeFileHandle AdjustProcessPrivilege(PRIVELEGE_NAMES pn)
+				=> AdjustProcessPrivilege(pn.ToString());
+
+			/// <returns>processToken</returns>
+			[SecurityCritical]
+			public static SafeFileHandle AdjustProcessPrivilege(string pn)
 			{
-				using var ProcessToken = OpenProcessToken(TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges);
-				var luid = LookupPrivilegeValue(pn);
-				var P = new LUID_AND_ATTRIBUTES[1];
+				//using SafeFileHandle ProcessToken = OpenCurrentProcessToken(TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges);
+				SafeFileHandle processToken = OpenCurrentProcessToken(TokenAccessLevels.Query | TokenAccessLevels.AdjustPrivileges);
+				LUID luid = LookupPrivilegeValue(pn);
+				LUID_AND_ATTRIBUTES[] P = new LUID_AND_ATTRIBUTES[1];
 				P[0].Luid = luid;
 				P[0].Attributes = SE_PRIVILEGE_ENABLED;
-				var tokenPrivileges = new TOKEN_PRIVILEGES(P);
+				TOKEN_PRIVILEGES tokenPrivileges = new(P);
 				AdjustTokenPrivileges(
-					ProcessToken.DangerousGetHandle(),
+					processToken.DangerousGetHandle(),
 					false,
 					ref tokenPrivileges,
 					Marshal.SizeOf(tokenPrivileges),
 					IntPtr.Zero,
 					IntPtr.Zero)
 					.e_ThrowLastWin32Exception_AssertFalse("AdjustTokenPrivileges");
+
+				return processToken;
+			}
+
+			[SecurityCritical]
+			public static void AdjustProcessPrivilegeAndCloseToken(PRIVELEGE_NAMES pn)
+			{
+				using SafeFileHandle token = AdjustProcessPrivilege(pn);
 			}
 
 			#endregion

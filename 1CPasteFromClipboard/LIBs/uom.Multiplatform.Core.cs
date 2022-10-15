@@ -17,15 +17,18 @@ global using System.Text.RegularExpressions;
 global using System.Threading;
 global using System.Threading.Tasks;
 global using System.Globalization;
+global using System.Windows.Forms;
+global using System.Xml;
+
+global using uom.Extensions;
+
 using System.Net;
 using System.Net.Http;
 using System.Drawing;
-using System.Windows.Forms;
 
-using uom.Extensions;
-using System.Xml;
 
 #nullable enable
+
 
 //	Using tuples to swap values
 //	(li.BackColor, li.ForeColor) = (li.ForeColor, li.BackColor);
@@ -72,6 +75,18 @@ See All # Constants: https://docs.microsoft.com/ru-ru/dotnet/csharp/language-ref
 #endif
 #endregion
 #endregion
+
+
+#region Class destructor
+/*
+		/// <summary>Destructor</summary>
+		~KeyboardHook()
+		{
+		}
+ */
+#endregion
+
+
 
 //if (e is MethodCallExpression { Method.Name: "MethodName" })
 
@@ -2986,39 +3001,17 @@ namespace uom
 				return (bReverse) ? aBits.Reverse().ToArray() : aBits;
 			}
 
-
-			private const string C_ERROR_NULL_MASK = "Bit mask must be >0!";
-			/// <summary>Установлены ли все биты по заданной маске</summary>
-			/// <param name="SourceValue">Значение, в котором проверяются биты</param>
-			/// <param name="BitMask">Маска, по которой проверяются биты</param>
-			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsBitsSetByMask(this int SourceValue, int BitMask)
-			{
-				if (BitMask <= 0) throw new ArgumentOutOfRangeException(C_ERROR_NULL_MASK);
-				return (SourceValue & BitMask) == BitMask;
-			}
-
-
-			/// <summary>Установлен ли бит по заданному индексу (индексы от 0)</summary>
-			/// <param name="SourceValue">Значение, в котором проверяются биты</param>
-			/// <param name="iZeroBasetBitIndexToCheck">Номер бита (индексы от 0)</param>
-			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsBitSetByIndex(this int SourceValue, int iZeroBasetBitIndexToCheck)
-			{
-				int BitMask = (int)Math.Round(Math.Pow(2d, iZeroBasetBitIndexToCheck));
-				return (SourceValue & BitMask) == BitMask; ;
-			}
-
-
-			/// <summary>Установлен ли бит по заданному индексу (индексы от 0)</summary>
-			/// <param name="SourceValue">Значение, в котором проверяются биты</param>
-			/// <param name="iZeroBasetBitIndexToCheck">Номер бита (индексы от 0)</param>
-			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static bool e_IsBitSetByIndex(this long SourceValue, int iZeroBasetBitIndexToCheck)
-			{
-				long BitMask = (long)Math.Round(Math.Pow(2d, iZeroBasetBitIndexToCheck));
-				return (SourceValue & BitMask) == BitMask;
-			}
+			/*
+private const string C_ERROR_NULL_MASK = "Bit mask must be >0!";
+/// <summary>Установлены ли все биты по заданной маске</summary>
+/// <param name="SourceValue">Значение, в котором проверяются биты</param>
+/// <param name="BitMask">Маска, по которой проверяются биты</param>
+[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+internal static bool e_IsBitsSetByMask(this int SourceValue, int BitMask)
+{
+if (BitMask <= 0) throw new ArgumentOutOfRangeException(C_ERROR_NULL_MASK);
+return (SourceValue & BitMask) == BitMask;
+}
 
 
 			/// <summary>Включает или выключает биты по маске</summary>
@@ -3046,17 +3039,45 @@ namespace uom
 				}
 			}
 
+			 */
 
-			/// <summary>Включает или выключает бит по заданному индексу (индексы от 0)</summary>
+
+			/// <summary>Установлен ли бит по заданному индексу (индексы от 0)</summary>
 			/// <param name="SourceValue">Значение, в котором проверяются биты</param>
-			/// <param name="iZeroBasetBitIndex">Номер бита для включения/выключения (индексы от 0)</param>
-			/// <param name="bSet">Вкл / выкл</param>
+			/// <param name="iZeroBasetBitIndexToCheck">Номер бита (индексы от 0)</param>
 			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_SetBitByIndex(this int SourceValue, int iZeroBasetBitIndex, bool bSet = true)
+			internal static bool e_IsBitSetByIndex(this int SourceValue, int iZeroBasetBitIndexToCheck)
 			{
-				int BitMask = (int)Math.Round(Math.Pow(2d, iZeroBasetBitIndex));
-				return SourceValue.e_SetBitsByMask(BitMask, bSet);
+				int BitMask = (int)Math.Round(Math.Pow(2d, iZeroBasetBitIndexToCheck));
+				return (SourceValue & BitMask) == BitMask; ;
 			}
+
+
+			/// <summary>Установлен ли бит по заданному индексу (индексы от 0)</summary>
+			/// <param name="SourceValue">Значение, в котором проверяются биты</param>
+			/// <param name="iZeroBasetBitIndexToCheck">Номер бита (индексы от 0)</param>
+			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			internal static bool e_IsBitSetByIndex(this long SourceValue, int iZeroBasetBitIndexToCheck)
+			{
+				long BitMask = (long)Math.Round(Math.Pow(2d, iZeroBasetBitIndexToCheck));
+				return (SourceValue & BitMask) == BitMask;
+			}
+
+
+
+			/*
+
+			 /// <summary>Включает или выключает бит по заданному индексу (индексы от 0)</summary>
+			 /// <param name="SourceValue">Значение, в котором проверяются биты</param>
+			 /// <param name="iZeroBasetBitIndex">Номер бита для включения/выключения (индексы от 0)</param>
+			 /// <param name="bSet">Вкл / выкл</param>
+			 [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+			 internal static int e_SetBitByIndex(this int SourceValue, int iZeroBasetBitIndex, bool bSet = true)
+			 {
+				 int BitMask = (int)Math.Round(Math.Pow(2d, iZeroBasetBitIndex));
+				 return SourceValue.e_SetBitsByMask(BitMask, bSet);
+			 }
+			 */
 
 
 			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -3070,24 +3091,25 @@ namespace uom
 				return SourceValue & iMask;
 			}
 
+			/*
+	 [DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
+	 internal static int e_SetBitByMaskWithOffset(this int SourceValue, int iZeroBasedStartBitIndex, int iBitCountAtValue, int iValueToSet)
+	 {
+		 iValueToSet <<= iZeroBasedStartBitIndex;
+		 uint iMax = uint.MaxValue;
+		 int iTotalBits = Marshal.SizeOf(iMax) * 8;
+		 int lShift = iTotalBits - iBitCountAtValue;
 
-			[DebuggerNonUserCode, DebuggerStepThrough, MethodImpl(MethodImplOptions.AggressiveInlining)]
-			internal static int e_SetBitByMaskWithOffset(this int SourceValue, int iZeroBasedStartBitIndex, int iBitCountAtValue, int iValueToSet)
-			{
-				iValueToSet <<= iZeroBasedStartBitIndex;
-				uint iMax = uint.MaxValue;
-				int iTotalBits = Marshal.SizeOf(iMax) * 8;
-				int lShift = iTotalBits - iBitCountAtValue;
+		 // Маска для выключения битов, на место которых будет вставляться нужное значение
+		 int iMask = (int)(iMax >> lShift);
+		 iMask <<= iZeroBasedStartBitIndex;
 
-				// Маска для выключения битов, на место которых будет вставляться нужное значение
-				int iMask = (int)(iMax >> lShift);
-				iMask <<= iZeroBasedStartBitIndex;
-
-				// Выключаем биты под вставку
-				SourceValue = SourceValue.e_SetBitsByMask(iMask, false);
-				int iResult = SourceValue | iValueToSet;
-				return iResult;
-			}
+		 // Выключаем биты под вставку
+		 SourceValue = SourceValue.e_SetBitsByMask(iMask, false);
+		 int iResult = SourceValue | iValueToSet;
+		 return iResult;
+	 }
+			 */
 
 
 
