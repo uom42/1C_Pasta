@@ -2,6 +2,8 @@
 using System.Data.Common;
 using System.Windows.Forms;
 
+using Microsoft.Win32.SafeHandles;
+
 using uom.Extensions;
 
 using Application = System.Windows.Forms.Application;
@@ -15,15 +17,15 @@ namespace Pasta
 	{
 
 
-		private const int CHANGE_APP_FOCUS_DELAY = 2000;
-		private const int PASTE_CELL_DELAY = 800;
+		private const int DELAY_1C_FOCUS = 2000;
+		private const int DELAY_CELL_PASTE = 800;
 
 
 		public frmMain()
 		{
 			InitializeComponent();
 
-			InitUI();			
+			InitUI();
 		}
 
 		private void InitUI()
@@ -39,7 +41,7 @@ namespace Pasta
 
 			ReadClipboard();
 		}
- 
+
 
 		private void ResetWindowText() => Text = Application.ProductName;
 
@@ -115,93 +117,92 @@ namespace Pasta
 				tlbMain.Enabled = false;
 				lvwData.MultiSelect = false;
 
-				Process[] procList = Process.GetProcesses();
-				var proc1Cs = procList.Where(p =>
-					p.ProcessName.ToLower().StartsWith("1cv8".ToLower())
-					&& !string.IsNullOrWhiteSpace(p.MainWindowTitle)
-				).ToArray();
-
-				if (!proc1Cs.Any()) throw new Exception("Не найден работающий процесс 1С!");
-				if (proc1Cs.Length > 1) throw new Exception("Найдено более одного активного процесса 1С!");
-
-				Process proc1C = proc1Cs.First();
-				IntPtr hwnd1C = proc1C.MainWindowHandle;
 				{
-					SetForegroundWindow(hwnd1C);
-					proc1C.WaitForInputIdle();
-					await Task.Delay(CHANGE_APP_FOCUS_DELAY);
 
-					int processingRowIndex = 0;
-					int totalRows = lvwData.Items.Count;
+					Process[] procList = Process.GetProcesses();
+					var proc1Cs = procList.Where(p =>
+						p.ProcessName.ToLower().StartsWith("1cv8".ToLower())
+						&& !string.IsNullOrWhiteSpace(p.MainWindowTitle)
+					).ToArray();
 
-					bool firstColumnFromDictionary = chkFirstColumnFromDictionary.Checked;
+					if (!proc1Cs.Any()) throw new Exception("Не найден работающий процесс 1С!");
+					if (proc1Cs.Length > 1) throw new Exception("Найдено более одного активного процесса 1С!");
 
-
-					foreach (DataRowListViewItem li in lvwData.Items)
+					Process proc1C = proc1Cs.First();
+					IntPtr hwnd1C = proc1C.MainWindowHandle;
 					{
-						li.Selected = true;
-						li.EnsureVisible();
-						lvwData.FocusedItem = li;
+						SetForegroundWindow(hwnd1C);
+						proc1C.WaitForInputIdle();
+						await Task.Delay(DELAY_1C_FOCUS);
 
-						processingRowIndex++;
-						float progress = (float)processingRowIndex / (float)totalRows;
-						string progressText = $"Обработано строк: {processingRowIndex} из {totalRows} ({progress:P2})";
-						Text = progressText;
+						int processingRowIndex = 0;
+						int totalRows = lvwData.Items.Count;
 
+						bool isFirstColumnFromDictionary = chkFirstColumnFromDictionary.Checked;
 
+						foreach (DataRowListViewItem li in lvwData.Items)
 						{
-							await SendAndWait("{INS}");
+							li.Selected = true;
+							li.EnsureVisible();
+							lvwData.FocusedItem = li;
 
-							int columnIndex = 0;
-							foreach (string txt in li.DataFor1C)
+							processingRowIndex++;
+							float progress = (float)processingRowIndex / (float)totalRows;
+							string progressText = $"Обработано строк: {processingRowIndex} из {totalRows} ({progress:P2})";
+							Text = progressText;
+
+
 							{
-								bool firstCol = (firstColumnFromDictionary && (columnIndex == 0));
+								await SendAndWait("{INS}");
 
-								await SendAndWait(txt.Trim(), firstCol);
+								int columnIndex = 0;
+								foreach (string txt in li.DataFor1C)
+								{
+									bool firstCol = (isFirstColumnFromDictionary && (columnIndex == 0));
+									await SendAndWait(txt.Trim(), false);       // Entering cell text
+									await SendAndWait(firstCol                          // Pressing Enter if first column and checkbox=true, else send TAB
+										? "{ENTER}"
+										: "{TAB}");
 
-								await SendAndWait(firstCol
-									? "{ENTER}"
-									: "{TAB}");
+									columnIndex++;
+								}
 
-								columnIndex++;
+								await SendAndWait("{F3}");
 							}
-
-							await SendAndWait("{F3}");
+							li.Selected = false;
 						}
-						li.Selected = false;
 					}
-				}
 
 
-				void Check1CWindowStillActive()
-				{
-					var hWndActive = GetForegroundWindow();
-					if (hWndActive != hwnd1C) throw new Exception("1C Window focus lost!");
-
-					proc1C.WaitForInputIdle();
-				}
-
-				async Task SendAndWait(string txt, bool useClipboard = false)
-				{
-
-					String textToSend = useClipboard
-						? "^v"
-						: txt;
-
-					Check1CWindowStillActive();
-
-					if (useClipboard)
+					void Check1CWindowStillActive()
 					{
-						Clipboard.Clear();
-						Clipboard.SetText(txt);
-						//Delay to allow OS process clipboard text for all applications...
-						await Task.Delay(200);
+						var hWndActive = GetForegroundWindow();
+						if (hWndActive != hwnd1C) throw new Exception("1C Window focus lost!");
+
+						proc1C.WaitForInputIdle();
 					}
 
-					SendKeys.SendWait(textToSend);
-					await Task.Delay(PASTE_CELL_DELAY);
-				}
+					async Task SendAndWait(string txt, bool useClipboard = false)
+					{
 
+						String textToSend = useClipboard
+							? "^v"
+							: txt;
+
+						Check1CWindowStillActive();
+
+						if (useClipboard)
+						{
+							Clipboard.Clear();
+							Clipboard.SetText(txt);
+							//Delay to allow OS process clipboard text for all applications...
+							await Task.Delay(200);
+						}
+
+						SendKeys.SendWait(textToSend);
+						await Task.Delay(DELAY_CELL_PASTE);
+					}
+				}
 
 			}
 			catch (Exception ex)

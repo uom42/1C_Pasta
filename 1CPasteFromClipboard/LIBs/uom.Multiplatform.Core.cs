@@ -507,6 +507,16 @@ Dim lExtList = (From FI In Me._lTotalFoundFilesOnDisk
 
 
 *** C#
+
+var workBooks =
+					from s in Sources.Cast<SourceOfficeDocument>()
+					group s by s.File.FullName.ToLower() into g
+					select new
+					{
+						file = g.Key,
+						workbooks = from p in g select p
+					};
+
 var groupByLastNamesQuery =
 	from student in students
 	group student by student.LastName into newGroup
@@ -521,6 +531,7 @@ foreach (var nameGroup in groupByLastNamesQuery)
 		Console.WriteLine($"\t{student.LastName}, {student.FirstName}");
 	}
 }
+
  */
 
 
