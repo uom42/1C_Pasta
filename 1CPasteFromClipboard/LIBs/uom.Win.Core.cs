@@ -31737,6 +31737,25 @@ namespace uom
 		}
 
 
+
+		[StructLayout(LayoutKind.Sequential)]
+		internal struct RECT
+		{
+			public int Left;
+			public int Top;
+			public int Right;
+			public int Bottom;
+
+
+			public int Width => Right - Left;
+			public int Height => Bottom - Top;
+
+			public Point Location => new(Left, Top);
+
+			public Rectangle ToRectangle() => new(Left, Top, Width, Height);
+		}
+
+
 		//[SecurityPermission(SecurityAction.LinkDemand, UnmanagedCode = true)]
 		internal static partial class Windows
 		{
@@ -32661,12 +32680,37 @@ namespace uom
 			#endregion
 
 
+
+
+
+
+
+
+
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
 			internal static extern IntPtr GetDesktopWindow();
 
 
-			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern IntPtr GetDlgItem(IntPtr hwnd, int id);
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -32681,35 +32725,60 @@ namespace uom
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
 			internal static extern IntPtr CreateWindowEx(
-					int dwExStyle,          // extended window style
-					string lpClassName,     // registered class name
-					string lpWindowName,    // window name
-					WindowStyles dwStyle,            // window style
-					int x,                  // horizontal position of window
-					int y,                  // vertical position of window
-					int nWidth,             // window width
-					int nHeight,            // window height
-					IntPtr hWndParent,      // handle to parent or owner window
-					IntPtr hMenu,           // menu handle or child identifier
-					IntPtr hInstance,       // handle to application instance
-					IntPtr lpParam          // window-creation data
+					[In] int dwExStyle,          // extended window style
+					[In, MarshalAs(UnmanagedType.LPTStr)] string lpClassName,     // registered class name
+					[In, MarshalAs(UnmanagedType.LPTStr)] string lpWindowName,    // window name
+					[In] WindowStyles dwStyle,            // window style
+					[In] int x,                  // horizontal position of window
+					[In] int y,                  // vertical position of window
+					[In] int nWidth,             // window width
+					[In] int nHeight,            // window height
+					[In] IntPtr hWndParent,      // handle to parent or owner window
+					[In] IntPtr hMenu,           // menu handle or child identifier
+					[In] IntPtr hInstance,       // handle to application instance
+					[In] IntPtr lpParam          // window-creation data
 					);
 
 
 
+			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern IntPtr GetForegroundWindow();
 
 
+			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern bool SetForegroundWindow([In] IntPtr hWnd);
 
+
+			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern bool ShowWindow(
+				[In] IntPtr handle,
+				[In] int nCmdShow);
+
+
+			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern IntPtr FindWindow(
+				[In, MarshalAs(UnmanagedType.LPTStr)] string lpClassName,
+				[In, MarshalAs(UnmanagedType.LPTStr)] string lpWindowName);
+
+
+			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
+			internal static extern IntPtr GetDlgItem(
+				[In] IntPtr hwnd,
+				[In] int id);
 
 
 
 			//protected static extern int ScreenToClient(IntPtr hwnd, ref POINT pt);
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern int ScreenToClient(IntPtr hwnd, [In, Out] ref System.Drawing.Point pt);
+			internal static extern int ScreenToClient(
+				[In] IntPtr hwnd,
+				[In, Out] ref System.Drawing.Point pt);
 
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int GetClientRect([In] IntPtr hwnd, [In, Out] ref System.Drawing.Rectangle rc);
+			private static extern int GetClientRect(
+				[In] IntPtr hwnd,
+				[In, Out] ref System.Drawing.Rectangle rc);
 
 			internal static Rectangle GetClientRect(IntPtr hwnd)
 			{
@@ -32721,26 +32790,14 @@ namespace uom
 			internal static Rectangle GetClientRect(IWin32Window wind) => GetClientRect(wind.Handle);
 
 
-			[StructLayout(LayoutKind.Sequential)]
-			private struct RECT
-			{
-				public int Left;
-				public int Top;
-				public int Right;
-				public int Bottom;
 
-
-				public int Width => Right - Left;
-				public int Height => Bottom - Top;
-
-				public Point Location => new(Left, Top);
-
-				public Rectangle ToRectangle() => new(Left, Top, Width, Height);
-			}
 
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int GetWindowRect(IntPtr hwnd, [In, Out] ref RECT rc);
+			private static extern int GetWindowRect(
+				[In] IntPtr hwnd,
+				[In, Out] ref RECT rc);
+
 			internal static Rectangle GetWindowRect(IntPtr hwnd)
 			{
 				RECT rc = new();
@@ -32750,13 +32807,14 @@ namespace uom
 
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			internal static extern void MoveWindow(IntPtr hwnd, int x, int y, int nWidth, int nHeight, bool bRepaint);
-
-
+			internal static extern void MoveWindow(
+				[In] IntPtr hwnd,
+				[In] int x, [In] int y, [In] int nWidth, [In] int nHeight,
+				[In] bool bRepaint);
 
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			private static extern int GetWindowTextLength(IntPtr hwnd);
+			private static extern int GetWindowTextLength([In] IntPtr hwnd);
 
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
@@ -32772,14 +32830,17 @@ namespace uom
 
 				StringBuilder sb = new(lenght + 2);
 				lenght = GetWindowText(hwnd, sb, sb.Capacity);
-				if (lenght > 0) return sb.ToString();
-				return string.Empty;
+				return (lenght > 0)
+					? sb.ToString()
+					: string.Empty;
 			}
 
 			public static string GetWindowText(IWin32Window wnd) => GetWindowText(wnd.Handle);
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
-			public static extern int SetWindowText(IntPtr hwnd, [In, MarshalAs(UnmanagedType.LPTStr)] string lpString);
+			public static extern int SetWindowText(
+				[In] IntPtr hwnd,
+				[In, MarshalAs(UnmanagedType.LPTStr)] string lpString);
 
 
 			[DllImport(core.WINDLL_USER, SetLastError = true, CharSet = CharSet.Auto, CallingConvention = CallingConvention.Winapi)]
@@ -32787,12 +32848,14 @@ namespace uom
 				[In] IntPtr hwnd,
 				[In, Out, MarshalAs(UnmanagedType.LPTStr)] StringBuilder lpString,
 				[In, Out] int nMaxCount);
+
 			public static string GetClassName(IntPtr hwnd)
 			{
 				StringBuilder sb = new(1024);
 				int lenght = GetClassName(hwnd, sb, sb.Capacity);
-				if (lenght > 0) return sb.ToString();
-				return string.Empty;
+				return (lenght > 0)
+					? sb.ToString()
+					: string.Empty;
 			}
 			public static string GetClassName(IWin32Window wnd) => GetClassName(wnd.Handle);
 
@@ -32824,10 +32887,10 @@ namespace uom
 			internal class DC : Microsoft.Win32.SafeHandles.SafeHandleZeroOrMinusOneIsInvalid
 			{
 				[DllImport(core.WINDLL_USER)]
-				private static extern IntPtr GetDC(IntPtr hwnd);
+				private static extern IntPtr GetDC([In] IntPtr hwnd);
 
 				[DllImport(core.WINDLL_USER)]
-				private static extern bool ReleaseDC(IntPtr hwnd, IntPtr hdc);
+				private static extern bool ReleaseDC([In] IntPtr hwnd, [In] IntPtr hdc);
 
 				internal IntPtr hWnd = IntPtr.Zero;
 
@@ -32932,15 +32995,21 @@ namespace uom
 
 
 			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int FileTimeToLocalFileTime(ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime, ref System.Runtime.InteropServices.ComTypes.FILETIME lpLocalFileTime);
+			public static extern int FileTimeToLocalFileTime(
+				[In] ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime,
+				[In, Out] ref System.Runtime.InteropServices.ComTypes.FILETIME lpLocalFileTime);
 
 
 			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int FileTimeToSystemTime(ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime, ref SYSTEMTIME lpSystemTime);
+			public static extern int FileTimeToSystemTime(
+				[In] ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime,
+				[In, Out] ref SYSTEMTIME lpSystemTime);
 
 
 			[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Auto, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
-			public static extern int SystemTimeToFileTime(ref SYSTEMTIME lpSystemTime, ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime);
+			public static extern int SystemTimeToFileTime(
+				[In] ref SYSTEMTIME lpSystemTime,
+				[In, Out] ref System.Runtime.InteropServices.ComTypes.FILETIME lpFileTime);
 
 			#region Files
 
@@ -34334,14 +34403,14 @@ namespace uom
 
 						[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
 						private static extern IntPtr FindFirstFileName(
-							[MarshalAs(UnmanagedType.LPWStr)] string lpFileName,
+							[In, MarshalAs(UnmanagedType.LPWStr)] string lpFileName,
 							int dwFlags,
 							[In, Out] ref int StringLength,
 							[In, Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder? LinkName);
 
 						[DllImport(core.WINDLL_KERNEL, SetLastError = true, CharSet = CharSet.Unicode, ExactSpelling = false, CallingConvention = CallingConvention.Winapi)]
 						private static extern bool FindNextFileName(
-							IntPtr hFindStream,
+							[In] IntPtr hFindStream,
 							[In, Out] ref int StringLength,
 							[In, Out, MarshalAs(UnmanagedType.LPWStr)] StringBuilder? LinkName);
 
@@ -34355,7 +34424,7 @@ namespace uom
 							var hFind = HardLinksEnumeration.FindFirstFileName(sFilePath, 0, ref cbBuffer, null);
 							if (hFind.e_IsValid()) throw new Exception("Unexpected Error!"); // ЭТО НЕ должно окончиться удачно, т.к. передали нулевой буфер
 							Errors.ThrowLastWin23ErrorAssert(Errors.Win32Errors.ERROR_MORE_DATA);
-							var sbBuffer = new StringBuilder(cbBuffer + 10);
+							StringBuilder sbBuffer = new (cbBuffer + 10);
 							hFind = HardLinksEnumeration.FindFirstFileName(sFilePath, 0, ref cbBuffer, sbBuffer); // А щас всё должно было получиться.
 							if (hFind.e_IsNotValid()) Errors.ThrowLastWin23Error();
 							var HLE = new HardLinksEnumeration(hFind);
@@ -34437,6 +34506,7 @@ namespace uom
 							FileMode.Open,
 							NativeFileFlags.FILE_FLAG_BACKUP_SEMANTICS,
 							IntPtr.Zero).e_ToSafeFileHandle();
+
 						var lResult = new List<string>();
 						int iLinks = GetFileHardLinksCount(hFile.DangerousGetHandle());
 						if (iLinks > 0)

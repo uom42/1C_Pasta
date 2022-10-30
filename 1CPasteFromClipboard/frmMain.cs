@@ -1,4 +1,5 @@
-﻿using System.Data;
+﻿using System;
+using System.Data;
 using System.Data.Common;
 using System.Windows.Forms;
 
@@ -19,6 +20,19 @@ namespace Pasta
 
 		private const int DELAY_1C_FOCUS = 2000;
 		private const int DELAY_CELL_PASTE = 800;
+
+
+		private const string C_1C_PROCESS_NAME = "1cv8";
+		private const string C_ERR_1C_WORKING_PROCESS_NOT_FOUND = "Не найден работающий процесс 1С!";
+		private const string C_MSG_1C_MORE_THAN_ONE_INSTANCES_RUNNING = "Найдено более одного активного процесса 1С!";
+		private const string C_MSG_1C_WINDOW_FOCUS_LOST = "1C Window focus lost!";
+		private const string C_MSG_PROGRESS = "Обработано строк: {0} из {1} ({2:P2})";
+
+		private const string C_KEYS_INS = "{INS}";
+		private const string C_KEYS_TAB = "{TAB}";
+		private const string C_KEYS_RETURN = "{ENTER}";
+		private const string C_KEYS_F3 = "{F3}";
+		private const string C_KEYS_PASTE = "^v";
 
 
 		public frmMain()
@@ -106,6 +120,7 @@ namespace Pasta
 		}
 
 
+
 		private async Task PasteTo1CTable()
 		{
 
@@ -121,17 +136,17 @@ namespace Pasta
 
 					Process[] procList = Process.GetProcesses();
 					var proc1Cs = procList.Where(p =>
-						p.ProcessName.ToLower().StartsWith("1cv8".ToLower())
+						p.ProcessName.ToLower().StartsWith(C_1C_PROCESS_NAME.ToLower())
 						&& !string.IsNullOrWhiteSpace(p.MainWindowTitle)
 					).ToArray();
 
-					if (!proc1Cs.Any()) throw new Exception("Не найден работающий процесс 1С!");
-					if (proc1Cs.Length > 1) throw new Exception("Найдено более одного активного процесса 1С!");
+					if (!proc1Cs.Any()) throw new Exception(C_ERR_1C_WORKING_PROCESS_NOT_FOUND);
+					if (proc1Cs.Length > 1) throw new Exception(C_MSG_1C_MORE_THAN_ONE_INSTANCES_RUNNING);
 
 					Process proc1C = proc1Cs.First();
 					IntPtr hwnd1C = proc1C.MainWindowHandle;
 					{
-						SetForegroundWindow(hwnd1C);
+						uom.WinAPI.Windows.SetForegroundWindow(hwnd1C);
 						proc1C.WaitForInputIdle();
 						await Task.Delay(DELAY_1C_FOCUS);
 
@@ -148,12 +163,12 @@ namespace Pasta
 
 							processingRowIndex++;
 							float progress = (float)processingRowIndex / (float)totalRows;
-							string progressText = $"Обработано строк: {processingRowIndex} из {totalRows} ({progress:P2})";
+							string progressText = C_MSG_PROGRESS.e_Format(processingRowIndex, totalRows, progress); // $"Обработано строк: {processingRowIndex} из {totalRows} ({progress:P2})";
 							Text = progressText;
 
 
 							{
-								await SendAndWait("{INS}");
+								await SendAndWait(C_KEYS_INS);
 
 								int columnIndex = 0;
 								foreach (string txt in li.DataFor1C)
@@ -161,13 +176,13 @@ namespace Pasta
 									bool firstCol = (isFirstColumnFromDictionary && (columnIndex == 0));
 									await SendAndWait(txt.Trim(), false);       // Entering cell text
 									await SendAndWait(firstCol                          // Pressing Enter if first column and checkbox=true, else send TAB
-										? "{ENTER}"
-										: "{TAB}");
+										? C_KEYS_RETURN
+										: C_KEYS_TAB);
 
 									columnIndex++;
 								}
 
-								await SendAndWait("{F3}");
+								await SendAndWait(C_KEYS_F3);
 							}
 							li.Selected = false;
 						}
@@ -176,8 +191,8 @@ namespace Pasta
 
 					void Check1CWindowStillActive()
 					{
-						var hWndActive = GetForegroundWindow();
-						if (hWndActive != hwnd1C) throw new Exception("1C Window focus lost!");
+						var hWndActive = uom.WinAPI.Windows.GetForegroundWindow();
+						if (hWndActive != hwnd1C) throw new Exception(C_MSG_1C_WINDOW_FOCUS_LOST);
 
 						proc1C.WaitForInputIdle();
 					}
@@ -186,7 +201,7 @@ namespace Pasta
 					{
 
 						String textToSend = useClipboard
-							? "^v"
+							? C_KEYS_PASTE
 							: txt;
 
 						Check1CWindowStillActive();
@@ -256,27 +271,5 @@ namespace Pasta
 			foreach (ListViewItem item in itemsToDelete) lvwData.Items.Remove(item);
 			DataRowListViewItem.ReEumerateItems(lvwData);
 		}
-
-
-		#region WinAPI
-
-
-		[DllImport("user32.dll")]
-		static extern bool SetForegroundWindow(IntPtr hWnd);
-
-		[System.Runtime.InteropServices.DllImport("User32.dll")]
-		static extern bool ShowWindow(IntPtr handle, int nCmdShow);
-
-		[DllImport("user32.dll", SetLastError = true, CharSet = CharSet.Auto)]
-		static extern IntPtr FindWindow(string lpClassName, string lpWindowName);
-
-		[DllImport("user32.dll")]
-		static extern IntPtr GetForegroundWindow();
-
-
-		#endregion
-
-
-
 	}
 }
