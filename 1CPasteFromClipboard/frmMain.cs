@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Data;
 using System.Data.Common;
+using System.Reflection;
 using System.Windows.Forms;
 
 using Microsoft.Win32.SafeHandles;
@@ -21,8 +22,6 @@ namespace Pasta
 		private const int DELAY_1C_FOCUS = 2000;
 		private const int DELAY_CELL_PASTE = 800;
 
-
-		private const string C_1C_PROCESS_NAME = "1cv8";
 		private const string C_ERR_1C_WORKING_PROCESS_NOT_FOUND = "Не найден работающий процесс 1С!";
 		private const string C_MSG_1C_MORE_THAN_ONE_INSTANCES_RUNNING = "Найдено более одного активного процесса 1С!";
 		private const string C_MSG_1C_WINDOW_FOCUS_LOST = "1C Window focus lost!";
@@ -47,10 +46,14 @@ namespace Pasta
 
 			ResetWindowText();
 
+			InitProcessList();
+
+			//this.txt1CProcessName.Text = C_1C_PROCESS_NAME;
+
 			this.btnReadClipboard.Click += (_, _) => ReadClipboard();
 			this.btnPasteTo1CTable.Click += async (_, _) => await PasteTo1CTable();
+			this.btnRefreshProcessList.Click += (_, _) => InitProcessList();
 			this.lvwData.KeyDown += OnDeleteItem;
-
 			chkFirstColumnFromDictionary.Checked = true;
 
 			ReadClipboard();
@@ -115,11 +118,40 @@ namespace Pasta
 			}
 			finally
 			{
-				btnPasteTo1CTable.Enabled = lvwData.Items.Count > 0;
+				UpdatePasteAvailability();
 			}
 		}
 
+		private bool foundValid1CProcess = false;
 
+		private void UpdatePasteAvailability()
+		{
+			btnPasteTo1CTable.Enabled = (lvwData.Items.Count > 0) && foundValid1CProcess;
+		}
+
+
+		private void InitProcessList()
+		{
+			cbo1CProcess.Items.Clear();
+
+			ProcessListItem[] runningProcess = Process
+				.GetProcesses()
+				.Where(p => !string.IsNullOrWhiteSpace(p.MainWindowTitle))
+				.Select(p => new ProcessListItem(p))
+				.Where(p => p.IsLike1CProcess)
+				.OrderBy(p => p.Title)
+				.ToArray();
+
+			foundValid1CProcess = runningProcess.Any();
+
+			if (foundValid1CProcess)
+			{
+				cbo1CProcess.Items.AddRange(runningProcess);
+				cbo1CProcess.SelectedIndex = 0;
+			}
+
+			UpdatePasteAvailability();
+		}
 
 		private async Task PasteTo1CTable()
 		{
@@ -133,18 +165,12 @@ namespace Pasta
 				lvwData.MultiSelect = false;
 
 				{
+					ProcessListItem? prc1C = cbo1CProcess.SelectedItem as ProcessListItem;
+					if (prc1C == null) throw new Exception(C_ERR_1C_WORKING_PROCESS_NOT_FOUND);
 
-					Process[] procList = Process.GetProcesses();
-					var proc1Cs = procList.Where(p =>
-						p.ProcessName.ToLower().StartsWith(C_1C_PROCESS_NAME.ToLower())
-						&& !string.IsNullOrWhiteSpace(p.MainWindowTitle)
-					).ToArray();
-
-					if (!proc1Cs.Any()) throw new Exception(C_ERR_1C_WORKING_PROCESS_NOT_FOUND);
-					if (proc1Cs.Length > 1) throw new Exception(C_MSG_1C_MORE_THAN_ONE_INSTANCES_RUNNING);
-
-					Process proc1C = proc1Cs.First();
+					Process proc1C = prc1C!.Process;
 					IntPtr hwnd1C = proc1C.MainWindowHandle;
+
 					{
 						uom.WinAPI.Windows.SetForegroundWindow(hwnd1C);
 						proc1C.WaitForInputIdle();
