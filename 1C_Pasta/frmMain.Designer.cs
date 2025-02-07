@@ -44,6 +44,7 @@ namespace Pasta
 			cbo1CProcess = new ToolStripComboBox ();
 			btnRefreshProcessList = new ToolStripButton ();
 			chkFirstColumnFromDictionary = new ToolStripCheckBox ();
+			chkSkipEmptyColumns = new ToolStripCheckBox ();
 			btnPasteTo1CTable = new ToolStripButton ();
 			panel1 = new Panel ();
 			tcMain = new TabControl ();
@@ -57,7 +58,7 @@ namespace Pasta
 			toolStripStatusLabel1 = new ToolStripStatusLabel ();
 			labelClickHandler1 = new UrlClickHandler (components);
 			cueBannerManager1 = new CueBannerManager (components);
-			chkSkipEmptyColumns = new ToolStripCheckBox ();
+			chkTrackClipboardChanges = new ToolStripCheckBox ();
 			tlbMain.SuspendLayout ();
 			panel1.SuspendLayout ();
 			tcMain.SuspendLayout ();
@@ -74,7 +75,7 @@ namespace Pasta
 			// tlbMain
 			// 
 			tlbMain.ImageScalingSize = new Size (24, 24);
-			tlbMain.Items.AddRange (new ToolStripItem[] { btnReadClipboard, toolStripSeparator1, chkSort, chkGroupByfirstColumn, toolStripSeparator2, lbl1CProcessName, cbo1CProcess, btnRefreshProcessList, chkFirstColumnFromDictionary, chkSkipEmptyColumns, btnPasteTo1CTable });
+			tlbMain.Items.AddRange (new ToolStripItem[] { chkTrackClipboardChanges, btnReadClipboard, toolStripSeparator1, chkSort, chkGroupByfirstColumn, toolStripSeparator2, lbl1CProcessName, cbo1CProcess, btnRefreshProcessList, chkFirstColumnFromDictionary, chkSkipEmptyColumns, btnPasteTo1CTable });
 			tlbMain.Location = new Point (3, 3);
 			tlbMain.Name = "tlbMain";
 			tlbMain.Padding = new Padding (0, 0, 3, 0);
@@ -148,6 +149,13 @@ namespace Pasta
 			chkFirstColumnFromDictionary.Name = "chkFirstColumnFromDictionary";
 			chkFirstColumnFromDictionary.Size = new Size (316, 36);
 			chkFirstColumnFromDictionary.Text = "Первая колонка это справочник";
+			// 
+			// chkSkipEmptyColumns
+			// 
+			chkSkipEmptyColumns.ImageTransparentColor = Color.Magenta;
+			chkSkipEmptyColumns.Name = "chkSkipEmptyColumns";
+			chkSkipEmptyColumns.Size = new Size (179, 36);
+			chkSkipEmptyColumns.Text = "toolStripButton1";
 			// 
 			// btnPasteTo1CTable
 			// 
@@ -267,14 +275,14 @@ namespace Pasta
 			toolStripStatusLabel1.Size = new Size (350, 25);
 			toolStripStatusLabel1.Text = "Toolbar icons created by www.flaticon.com";
 			// 
-			// chkSkipEmptyColumns
+			// chkTrackClipboardChanges
 			// 
-			chkSkipEmptyColumns.DisplayStyle = ToolStripItemDisplayStyle.Image;
-			chkSkipEmptyColumns.Image = (Image) resources.GetObject ("chkSkipEmptyColumns.Image");
-			chkSkipEmptyColumns.ImageTransparentColor = Color.Magenta;
-			chkSkipEmptyColumns.Name = "chkSkipEmptyColumns";
-			chkSkipEmptyColumns.Size = new Size (34, 36);
-			chkSkipEmptyColumns.Text = "toolStripButton1";
+			chkTrackClipboardChanges.DisplayStyle = ToolStripItemDisplayStyle.Image;
+			chkTrackClipboardChanges.Image = (Image) resources.GetObject ("chkTrackClipboardChanges.Image");
+			chkTrackClipboardChanges.ImageTransparentColor = Color.Magenta;
+			chkTrackClipboardChanges.Name = "chkTrackClipboardChanges";
+			chkTrackClipboardChanges.Size = new Size (34, 36);
+			chkTrackClipboardChanges.Text = "toolStripButton1";
 			// 
 			// frmMain
 			// 
@@ -331,6 +339,7 @@ namespace Pasta
 		internal ToolStripCheckBox chkGroupByfirstColumn;
 		internal ToolStripCheckBox chkSort;
 		internal ToolStripCheckBox chkSkipEmptyColumns;
+		internal ToolStripCheckBox chkTrackClipboardChanges;
 	}
 }
 

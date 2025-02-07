@@ -26,6 +26,8 @@ internal partial class Engine
 		grd.MultiSelect = true;
 		grd.SelectionMode = DataGridViewSelectionMode.FullRowSelect;
 
+		grd.RowPostPaint += grid_RowPostPaint!;
+
 
 		//grd.sele
 		/*
@@ -36,6 +38,22 @@ internal partial class Engine
 		 */
 
 
+	}
+
+	private void grid_RowPostPaint ( object sender, DataGridViewRowPostPaintEventArgs e )
+	{
+		DataGridView grd = (DataGridView) sender!;
+		var rowIdx = ( e.RowIndex + 1 ).ToString ();
+
+		var centerFormat = new StringFormat ()
+		{
+			// right alignment might actually make more sense for numbers
+			Alignment = StringAlignment.Center,
+			LineAlignment = StringAlignment.Center
+		};
+
+		var headerBounds = new Rectangle (e.RowBounds.Left, e.RowBounds.Top, grd.RowHeadersWidth, e.RowBounds.Height);
+		e.Graphics.eDrawTextEx (rowIdx, grd.Font, SystemBrushes.ControlText, headerBounds, ContentAlignment.MiddleRight);
 	}
 
 
@@ -50,7 +68,18 @@ internal partial class Engine
 
 	private static void UpdateDataGridColumnsFromDataSource ( DataTable dt, DataGridView grd, ToolStripCheckBox skipEmptyColumns )
 	{
+
 		if (dt.Rows.Count < 1) return;
+
+		/*
+		foreach (var row in grd.Rows.OfType<DataGridViewRow> ())
+		{
+			var c = row.HeaderCell;
+			c.Value = $"{row.Index + 1}";
+			c.ValueType = typeof (string);
+			grd.InvalidateRow (row.Index);
+		}
+		 */
 
 
 		var dataColumns = dt.Columns.OfType<DataColumn> ().ToArray ();
@@ -74,6 +103,7 @@ internal partial class Engine
 
 				grdCol.DefaultCellStyle = cellStyle;
 			}
+
 			var cellHdr = new CheckBoxedHeaderCell (grd, dtCol, grdCol, skipEmptyColumns)
 			{
 				Style = _cellStyle_Header
@@ -82,8 +112,6 @@ internal partial class Engine
 			grdCol.SortMode = DataGridViewColumnSortMode.NotSortable;
 		}
 	}
-
-
 }
 
 

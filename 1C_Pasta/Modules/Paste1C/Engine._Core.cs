@@ -47,6 +47,15 @@ internal partial class Engine
 	{
 		InitDataGrid ();
 
+		_fm.chkTrackClipboardChanges.Text = "Отслеживать";
+		_fm.chkTrackClipboardChanges.ToolTipText = "Отслеживать изменения в буфере обмена и читать из него таблицы";
+		_fm.chkTrackClipboardChanges.Checked = true;
+		_fm.chkTrackClipboardChanges.CheckedChanged += ( _, _ ) =>
+		{
+			_clipboard.MonitorClipboard = _fm.chkTrackClipboardChanges.Checked;
+		};
+
+
 		_fm.btnReadClipboard.Click += ( _, _ ) => ReadClipboard ();
 		_fm.btnRefreshProcessList.Click += ( _, _ ) => Refresh1CProcessesList ();
 
